@@ -6,7 +6,62 @@ Python SDK for Google Gemini. No API key, no server, no configuration needed.
 
 - Direct Gemini web scraping
 - Works out of the box
-- Optional OpenAI-compatible API server
+- Live API on Vercel
+
+---
+
+## Live API
+
+**Base URL:** `https://gemini-openai-proxy-python.vercel.app/v1`
+
+Works with any OpenAI-compatible client.
+
+### cURL
+
+```bash
+curl https://gemini-openai-proxy-python.vercel.app/v1/models
+
+curl https://gemini-openai-proxy-python.vercel.app/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gemini", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+
+### Python (OpenAI Library)
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://gemini-openai-proxy-python.vercel.app/v1",
+    api_key="any-key"
+)
+
+response = client.chat.completions.create(
+    model="gemini",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)
+```
+
+### Streaming
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://gemini-openai-proxy-python.vercel.app/v1",
+    api_key="any-key"
+)
+
+stream = client.chat.completions.create(
+    model="gemini",
+    messages=[{"role": "user", "content": "Tell me a story"}],
+    stream=True
+)
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+```
 
 ---
 
@@ -20,6 +75,8 @@ pip install gemixy
 
 ## Quick Start
 
+### Python SDK (Direct Gemini - No Server)
+
 ```python
 from gemixy import GeminiClient
 
@@ -27,13 +84,28 @@ client = GeminiClient()
 print(client.chat("Hello!"))
 ```
 
+### Live API (OpenAI Compatible)
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://gemini-openai-proxy-python.vercel.app/v1",
+    api_key="any-key"
+)
+
+response = client.chat.completions.create(
+    model="gemini",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)
+```
+
 ---
 
-## SDK Methods
+## SDK Methods (Direct Gemini)
 
 ### chat(message)
-
-Simple chat with Gemini.
 
 ```python
 from gemixy import GeminiClient
@@ -45,8 +117,6 @@ print(response)
 
 ### chat_stream(message)
 
-Streaming chat - yields words one by one.
-
 ```python
 from gemixy import GeminiClient
 
@@ -57,8 +127,6 @@ for chunk in client.chat_stream("Tell me a story"):
 
 ### messages(messages)
 
-Chat with message history (system, user, assistant roles).
-
 ```python
 from gemixy import GeminiClient
 
@@ -67,13 +135,10 @@ messages = [
     {"role": "system", "content": "You are a helpful assistant"},
     {"role": "user", "content": "What is Python?"}
 ]
-response = client.messages(messages)
-print(response)
+print(client.messages(messages))
 ```
 
 ### messages_stream(messages)
-
-Streaming chat with message history.
 
 ```python
 from gemixy import GeminiClient
@@ -89,14 +154,11 @@ for chunk in client.messages_stream(messages):
 
 ### models()
 
-List available models.
-
 ```python
 from gemixy import GeminiClient
 
 client = GeminiClient()
 print(client.models())
-# {'object': 'list', 'data': [{'id': 'gemini', ...}]}
 ```
 
 ---
@@ -113,15 +175,22 @@ print(client.models())
 
 ---
 
-## Deploy Server (Optional)
+## Server API Endpoints
 
-If you need an OpenAI-compatible API server for other tools:
+Live: `https://gemini-openai-proxy-python.vercel.app/v1`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/v1/models` | List models |
+| POST | `/v1/chat/completions` | Chat completions |
+
+---
+
+## Deploy Your Own
 
 ### Vercel
 
 ```bash
-npm i -g vercel
-vercel login
 vercel --yes
 ```
 
@@ -134,90 +203,13 @@ docker build -t gemixy .
 docker run -d -p 5000:5000 gemixy
 ```
 
-### Local Server
+### Local
 
 ```bash
 git clone https://github.com/pooraddyy/gemini-openai-proxy-python.git
 cd gemini-openai-proxy-python
 pip install -r requirements.txt
 python run.py
-```
-
-Server starts at `http://localhost:5000`
-
----
-
-## Server API Endpoints
-
-### List Models
-
-```http
-GET /v1/models
-```
-
-Response:
-```json
-{
-  "object": "list",
-  "data": [
-    {"id": "gemini", "object": "model", "owned_by": "google"}
-  ]
-}
-```
-
-### Chat Completions
-
-```http
-POST /v1/chat/completions
-Content-Type: application/json
-```
-
-Body:
-```json
-{
-  "model": "gemini",
-  "messages": [
-    {"role": "user", "content": "Hello!"}
-  ],
-  "stream": false
-}
-```
-
-Response:
-```json
-{
-  "id": "chatcmpl-abc123",
-  "object": "chat.completion",
-  "model": "gemini",
-  "choices": [
-    {
-      "index": 0,
-      "message": {"role": "assistant", "content": "Hello!"},
-      "finish_reason": "stop"
-    }
-  ]
-}
-```
-
----
-
-## OpenAI Client Library
-
-Works with official OpenAI library (requires server running):
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://localhost:5000/v1",
-    api_key="any-key"
-)
-
-response = client.chat.completions.create(
-    model="gemini",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-print(response.choices[0].message.content)
 ```
 
 ---
@@ -234,28 +226,6 @@ try:
     response = client.chat("Hello!")
 except RuntimeError as e:
     print(f"Error: {e}")
-```
-
----
-
-## Project Structure
-
-```
-gemixy/
-├── gemixy/
-│   ├── __init__.py       # SDK (no server needed)
-├── gemini/
-│   ├── __init__.py
-│   └── core.py           # Gemini scraping logic
-├── api/
-│   └── index.py          # Vercel serverless function
-├── run.py                # Local dev server
-├── setup.py              # PyPI package
-├── Dockerfile
-├── vercel.json
-├── requirements.txt
-├── DOCS.md
-└── README.md
 ```
 
 ---
